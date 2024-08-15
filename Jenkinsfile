@@ -1,23 +1,39 @@
 pipeline {
     agent any
 
-    parameters {
-        string(name: 'BRANCH_NAME', defaultValue: '', description: 'Branch to build')
-        string(name: 'ENVIRONMENT', defaultValue: 'development', description: 'Deployment environment')
-    }
-
     environment {
-        // Define environment variables based on branch
-        PORT = '8081'
+        // Default port and environment
+        PORT = ''
+        ENVIRONMENT = ''
     }
 
     stages {
         stage('Checkout') {
             steps {
-                // Checkout code from the specified branch
                 script {
+                    // Automatically use the branch currently being built
+                    def branchName = env.BRANCH_NAME
+                    
+                    // Set environment and port based on the branch
+                    switch (branchName) {
+                        case 'master':
+                            env.ENVIRONMENT = 'production'
+                            env.PORT = '8083'
+                            break
+                        case 'staging':
+                            env.ENVIRONMENT = 'staging'
+                            env.PORT = '8082'
+                            break
+                        case 'development':
+                        default:
+                            env.ENVIRONMENT = 'development'
+                            env.PORT = '8081'
+                            break
+                    }
+                    
+                    // Checkout code from the current branch
                     checkout([$class: 'GitSCM', 
-                        branches: [[name: "${params.BRANCH_NAME}"]], 
+                        branches: [[name: "${branchName}"]], 
                         userRemoteConfigs: [[url: 'https://github.com/novrian6/python_jenkins_demo.git']]
                     ])
                 }
@@ -26,37 +42,29 @@ pipeline {
         
         stage('Build') {
             steps {
-                echo "Building branch: ${params.BRANCH_NAME}"
+                echo "Building branch: ${env.BRANCH_NAME} in environment: ${env.ENVIRONMENT}"
                 // Add build steps here
             }
         }
         
         stage('Test') {
             steps {
-                echo "Testing branch: ${params.BRANCH_NAME}"
+                echo "Testing branch: ${env.BRANCH_NAME} in environment: ${env.ENVIRONMENT}"
                 // Add test steps here
             }
         }
         
         stage('Deploy') {
             when {
-                expression { params.ENVIRONMENT == 'development' || params.ENVIRONMENT == 'staging' || params.ENVIRONMENT == 'production' }
+                expression { env.ENVIRONMENT == 'development' || env.ENVIRONMENT == 'staging' || env.ENVIRONMENT == 'production' }
             }
             steps {
                 script {
-                    // Adjust the port based on the environment
-                    if (params.ENVIRONMENT == 'development') {
-                        env.PORT = '8081'
-                    } else if (params.ENVIRONMENT == 'staging') {
-                        env.PORT = '8082'
-                    } else if (params.ENVIRONMENT == 'production') {
-                        env.PORT = '8083'
-                    }
+                    echo "Deploying to ${env.ENVIRONMENT} on port ${env.PORT}"
                     
                     // Deploy the application to the appropriate environment
-                    echo "Deploying to ${params.ENVIRONMENT} on port ${env.PORT}"
-                    sh "scp -i ~/.ssh/id_rsa -r * nn@172.16.137.133:/home/nn/flask_apps/${params.ENVIRONMENT}"
-                    sh "ssh nn@172.16.137.133 'sudo systemctl restart flask_${params.ENVIRONMENT}.service'"
+                    sh "scp -i ~/.ssh/id_rsa -r * nn@172.16.137.133:/home/nn/flask_apps/${env.ENVIRONMENT}"
+                    sh "ssh nn@172.16.137.133 'sudo systemctl restart flask_${env.ENVIRONMENT}.service'"
                 }
             }
         }
@@ -69,4 +77,3 @@ pipeline {
         }
     }
 }
-
