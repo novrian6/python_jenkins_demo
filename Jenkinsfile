@@ -52,8 +52,8 @@ pipeline {
                         serviceName = 'flask_staging.service'
                     } else if (env.BRANCH_NAME.startsWith('release/')) {
                         // Release branches are deployed to a separate pre-production environment
-                        targetFolder = '/home/nn/flask_apps/pre_production'
-                        serviceName = 'flask_pre_production.service'
+                        targetFolder = '/home/nn/flask_apps/preproduction'
+                        serviceName = 'flask_preproduction.service'
                     } else if (env.BRANCH_NAME == 'master') {
                         // Master branch is deployed to the production environment
                         targetFolder = '/home/nn/flask_apps/production'
