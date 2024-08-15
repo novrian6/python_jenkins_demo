@@ -2,7 +2,8 @@ pipeline {
     agent any
     environment {
         SSH_CREDENTIALS_ID = 'bc013f38-40d9-4731-8ed1-23c56055cc0f'
-        SUDO_PASSWORD = 'P@ssw0rd' // Replace with your hardcoded password
+        //SUDO_PASSWORD = 'P@ssw0rd' // Replace with your hardcoded password
+        SUDO_PASSWORD = credentials('sudo-password') // Replace with your credential ID
     }
     
     stages {
