@@ -3,7 +3,18 @@ pipeline {
     environment {
         SSH_CREDENTIALS_ID = 'bc013f38-40d9-4731-8ed1-23c56055cc0f'
     }
+    
     stages {
+
+         stage('Add Host Key') {
+            steps {
+                sshagent(credentials: [SSH_CREDENTIALS_ID]) {
+                    sh '''
+                    ssh-keyscan -H 172.16.137.133 >> ~/.ssh/known_hosts
+                    '''
+                }
+            }
+        }
         stage('Checkout') {
             steps {
                 // Checkout the code from GitHub
