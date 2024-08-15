@@ -2,6 +2,7 @@ pipeline {
     agent any
     environment {
         SSH_CREDENTIALS_ID = 'bc013f38-40d9-4731-8ed1-23c56055cc0f'
+        SUDO_PASSWORD = 'P@ssw0rd' // Replace with your hardcoded password
     }
     
     stages {
@@ -48,9 +49,9 @@ pipeline {
 
                     sshagent([env.SSH_CREDENTIALS_ID]) {
                         sh "scp -o StrictHostKeyChecking=no -r *.py requirements.txt nn@172.16.137.133:${targetFolder}"
-                       // sh "ssh -o StrictHostKeyChecking=no nn@172.16.137.133 'sudo systemctl restart ${serviceName}'"
-                        echo 'P@ssword' | ssh -o StrictHostKeyChecking=no nn@172.16.137.133 'sudo -S systemctl restart ${serviceName}'
-                      
+                        sh """
+                        echo ${SUDO_PASSWORD} | ssh -o StrictHostKeyChecking=no nn@172.16.137.133 'sudo -S systemctl restart ${serviceName}'
+                        """
                     }
                 }
             }
