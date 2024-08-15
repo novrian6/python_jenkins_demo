@@ -54,7 +54,7 @@ pipeline {
 
                     sshagent([env.SSH_CREDENTIALS_ID]) {
                         sh "scp -o StrictHostKeyChecking=no -r *.py requirements.txt nn@172.16.137.133:${targetFolder}"
-                        sh "ssh nn@172.16.137.133 \"sudo systemctl restart ${serviceName}\""
+                        sh "ssh  -o StrictHostKeyChecking=no nn@172.16.137.133 \"sudo systemctl restart ${serviceName}\""
                     }
                 }
             }
