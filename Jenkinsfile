@@ -53,7 +53,7 @@ pipeline {
                     }
 
                     sshagent([env.SSH_CREDENTIALS_ID]) {
-                        sh "scp -r * nn@172.16.137.133:${targetFolder}"
+                        sh "scp -o StrictHostKeyChecking=no -r * nn@172.16.137.133:${targetFolder}"
                         sh "ssh nn@172.16.137.133 \"sudo systemctl restart ${serviceName}\""
                     }
                 }
