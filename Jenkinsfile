@@ -1,51 +1,49 @@
 pipeline {
     agent any
     environment {
-        // Define SSH credentials ID here
-        SSH_CREDENTIALS_ID = 'your-ssh-credentials-id'
+        SSH_CREDENTIALS_ID = 'bc013f38-40d9-4731-8ed1-23c56055cc0f'
     }
     stages {
         stage('Checkout') {
             steps {
-                git 'https://github.com/novrian6/python_jenkins_demo.git'
+                // Checkout the code from GitHub
+                git branch: "${env.BRANCH_NAME}", url: 'https://github.com/novrian6/python_jenkins_demo.git'
             }
         }
         stage('Build & Test') {
             steps {
                 script {
-                    // Install dependencies and run tests
                     sh 'pip install -r requirements.txt'
                     sh 'pytest'
                 }
             }
         }
-        stage('Deploy to Staging') {
-            when {
-                branch 'development'
-            }
+        stage('Deploy') {
             steps {
                 script {
-                    sshagent([env.SSH_CREDENTIALS_ID]) {
-                        sh 'scp -r * nn@172.16.137.133:/home/nn/flask_apps/staging'
-                        sh 'ssh nn@172.16.137.133 "cd /home/nn/flask_apps/staging && ./deploy.sh"'
+                    def targetFolder
+                    def serviceName
+                    def targetPort
+
+                    if (env.BRANCH_NAME == 'development') {
+                        targetFolder = '/home/nn/flask_apps/development'
+                        serviceName = 'flask_development.service'
+                        targetPort = 8081
+                    } else if (env.BRANCH_NAME == 'staging') {
+                        targetFolder = '/home/nn/flask_apps/staging'
+                        serviceName = 'flask_staging.service'
+                        targetPort = 8082
+                    } else if (env.BRANCH_NAME == 'master') {
+                        targetFolder = '/home/nn/flask_apps/production'
+                        serviceName = 'flask_production.service'
+                        targetPort = 8083
+                    } else {
+                        error "Unknown branch: ${env.BRANCH_NAME}"
                     }
-                }
-            }
-        }
-        stage('Approval') {
-            steps {
-                input 'Approve deployment to Production?'
-            }
-        }
-        stage('Deploy to Production') {
-            when {
-                branch 'master'
-            }
-            steps {
-                script {
+
                     sshagent([env.SSH_CREDENTIALS_ID]) {
-                        sh 'scp -r * nn@172.16.137.133:/home/nn/flask_apps/production'
-                        sh 'ssh nn@172.16.137.133 "cd /home/nn/flask_apps/production && ./deploy.sh"'
+                        sh "scp -r * nn@172.16.137.133:${targetFolder}"
+                        sh "ssh nn@172.16.137.133 \"sudo systemctl restart ${serviceName}\""
                     }
                 }
             }
@@ -57,4 +55,3 @@ pipeline {
         }
     }
 }
-
