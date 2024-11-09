@@ -1,7 +1,7 @@
 pipeline {
     agent any
     environment {
-        SSH_CREDENTIALS_ID = 'bc013f38-40d9-4731-8ed1-23c56055cc0f'
+        SSH_CREDENTIALS_ID = 'targetserver' //'bc013f38-40d9-4731-8ed1-23c56055cc0f'
         SUDO_PASSWORD = credentials('sudo-password') // Replace with your credential ID
     }
     
@@ -10,7 +10,7 @@ pipeline {
             steps {
                 sshagent(credentials: [SSH_CREDENTIALS_ID]) {
                     sh '''
-                    ssh-keyscan -H 172.16.137.133 >> ~/.ssh/known_hosts
+                    ssh-keyscan -H localhost >> ~/.ssh/known_hosts
                     '''
                 }
             }
@@ -64,9 +64,9 @@ pipeline {
 
                     // Deploy the code to the target server
                     sshagent([env.SSH_CREDENTIALS_ID]) {
-                        sh "scp -o StrictHostKeyChecking=no -r *.py requirements.txt nn@172.16.137.133:${targetFolder}"
+                        sh "scp -o StrictHostKeyChecking=no -r *.py requirements.txt nn@localhost:${targetFolder}"
                         sh """
-                        echo ${SUDO_PASSWORD} | ssh -o StrictHostKeyChecking=no nn@172.16.137.133 'sudo -S systemctl restart ${serviceName}'
+                        echo ${SUDO_PASSWORD} | ssh -o StrictHostKeyChecking=no nn@localhost 'sudo -S systemctl restart ${serviceName}'
                         """
                     }
                 }
