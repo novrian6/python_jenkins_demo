@@ -26,8 +26,9 @@ pipeline {
         stage('Checkout') {
             steps {
                 script {
-                    echo "Checking out code from Git repository"
+                    echo "Checking out code from Git repository v1"
                     checkout scm
+                    echo "Checkout complete."
                 }
             }
         }
@@ -35,6 +36,7 @@ pipeline {
         stage('Build & Test') {
             steps {
                 script {
+                    echo "Building and testing..."
                     echo "Installing dependencies..."
                     sh 'pip install -r requirements.txt'
                     // Uncomment to run tests if needed
@@ -93,11 +95,11 @@ pipeline {
 
     post {
         always {
-            node {
-                // Clean up workspace after the pipeline is complete
-                echo "Cleaning up workspace..."
-                cleanWs()
-            }
+             
+            // Clean up workspace after the pipeline is complete
+            echo "Cleaning up workspace..."
+            cleanWs()
+            
         }
 
         success {
