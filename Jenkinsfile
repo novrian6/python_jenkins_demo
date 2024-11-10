@@ -1,17 +1,21 @@
 pipeline {
     agent any
     environment {
-        SSH_CREDENTIALS_ID = 'targetserver' //'bc013f38-40d9-4731-8ed1-23c56055cc0f'
-        SUDO_PASSWORD = credentials('sudo-password') // Replace with your credential ID
+        SSH_CREDENTIALS_ID = 'targetserver' // Use your actual SSH credential ID here
     }
     
     stages {
         stage('Add Host Key') {
             steps {
                 sshagent(credentials: [SSH_CREDENTIALS_ID]) {
-                    sh '''
-                    ssh-keyscan -H localhost >> ~/.ssh/known_hosts
-                    '''
+                    script {
+                        sh '''
+                        ssh-keyscan -H development.server.com >> ~/.ssh/known_hosts
+                        ssh-keyscan -H staging.server.com >> ~/.ssh/known_hosts
+                        ssh-keyscan -H preproduction.server.com >> ~/.ssh/known_hosts
+                        ssh-keyscan -H production.server.com >> ~/.ssh/known_hosts
+                        '''
+                    }
                 }
             }
         }
@@ -19,7 +23,6 @@ pipeline {
         stage('Checkout') {
             steps {
                 script {
-                    // Checkout the code from the current branch
                     checkout scm
                 }
             }
@@ -29,7 +32,7 @@ pipeline {
             steps {
                 script {
                     sh 'pip install -r requirements.txt'
-                    // Uncomment to run tests
+                    // Uncomment to run tests if needed
                     // sh 'pytest'
                 }
             }
@@ -40,45 +43,36 @@ pipeline {
                 script {
                     def targetFolder
                     def serviceName
+                    def serverAddress
 
-                    // Define deployment targets based on the branch name
                     if (env.BRANCH_NAME.startsWith('feature/')) {
-                        // Feature branches are deployed to the development environment
                         targetFolder = '/home/nn/flask_apps/development'
                         serviceName = 'flask_development.service'
+                        serverAddress = 'development.server.com'
                     } else if (env.BRANCH_NAME == 'develop') {
-                        // Develop branch is deployed to the staging environment
                         targetFolder = '/home/nn/flask_apps/staging'
                         serviceName = 'flask_staging.service'
+                        serverAddress = 'staging.server.com'
                     } else if (env.BRANCH_NAME.startsWith('release/')) {
-                        // Release branches are deployed to a separate pre-production environment
                         targetFolder = '/home/nn/flask_apps/preproduction'
                         serviceName = 'flask_preproduction.service'
+                        serverAddress = 'preproduction.server.com'
                     } else if (env.BRANCH_NAME == 'master') {
-                        // Master branch is deployed to the production environment
                         targetFolder = '/home/nn/flask_apps/production'
                         serviceName = 'flask_production.service'
+                        serverAddress = 'production.server.com'
                     } else {
                         error "Unknown branch: ${env.BRANCH_NAME}"
                     }
 
-                    // Deploy the code to the target server
+                    // Deploy to the target server
                     sshagent([env.SSH_CREDENTIALS_ID]) {
-                        sh "scp -o StrictHostKeyChecking=no -r *.py requirements.txt nn@localhost:${targetFolder}"
                         sh """
-                        echo ${SUDO_PASSWORD} | ssh -o StrictHostKeyChecking=no nn@localhost 'sudo -S systemctl restart ${serviceName}'
+                        ssh -o StrictHostKeyChecking=no ${serverAddress} "deploy commands here"
                         """
                     }
                 }
             }
         }
     }
-    post {
-        always {
-            node {
-                cleanWs()
-            }
-        }
-    }
-     
 }
